@@ -31,7 +31,7 @@ while reqCount < 120:
     if reqCount > 0:
         for i in range(numGames):
             if lines[math.floor(4*i)].text != prevLines[math.floor(4*i)].text:
-                msg = f'Game {i+1}: {prevTeams[math.floor(2*i)].text}({prevLines[math.floor(4*i)].text}) to ({lines[math.floor(4*i)].text})')
+                msg = f'Game {i+1}: {prevTeams[math.floor(2*i)].text}({prevLines[math.floor(4*i)].text}) to ({lines[math.floor(4*i)].text})'
                 print("******LINE CHANGE********")
                 print(msg)
                 print("*************************")

@@ -10,9 +10,11 @@ async def send_msg(msg, user_msg, is_private):
     except Exceptions as e:
         print(e)
 
+async def send_line_move()
+
 
 def run_discord_bot():
-    TOKEN = 'MTE2NjM4Mjk0MTE1NzQ2NjI5Mw.GDqgXz.ZQ9X-o_KjitTo46Kl5TmgI-rzeRdtKXBHnKXB0'
+    TOKEN = 'MTE2NjM4Mjk0MTE1NzQ2NjI5Mw.GiQ2Ek.TGkZQMeXIOe3q_6G0Ffo-xuPa3UfqHbP49C1wU'
     intents = discord.Intents.default()
     intents.message_content = True
     client = discord.Client(intents=intents)

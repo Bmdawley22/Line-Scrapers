@@ -8,9 +8,7 @@ from scraperParameters import params
 url = 'https://sportsbook.draftkings.com/leagues/football/nfl'
 response = requests.get(url)
 
-header = {
-    'authorization': "Nzk2MDgxNzg5NTU4NDU2MzUx.GgQdGC.ZCqoFX8tlo7RNB5UgZaLJuuMqh7PvaaX-m1fyo"
-}
+webhook_url = 'https://discord.com/api/webhooks/1166457905717968896/asJ74kScehP8BmzfekpRQ-XqVFaHiyvSJITX2UR3aGpoto_h1aeIeMZ_EA7yzQmeb6dj'
 
 reqCount = 0
 prevTeams = []
@@ -22,8 +20,7 @@ def sendNotificationToDiscord(msg):
     print("\n******LINE CHANGE********")
     print(msg)
     print("*************************")
-    r = requests.post(f'https://discord.com/api/v9/channels/{params["CFBChannelID"]}/messages',
-                      data={'content': msg}, headers=header)
+    r = requests.post(webhook_url, data={'content': msg})
 
 
 while reqCount < (params['maxRunTimeInMin'] * (60 / params['repRateInS'])):

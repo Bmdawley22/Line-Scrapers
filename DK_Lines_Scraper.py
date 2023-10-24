@@ -5,27 +5,30 @@ from bs4 import BeautifulSoup
 
 from scraperParameters import params
 
-url = 'https://sportsbook.draftkings.com/leagues/football/ncaaf'
+url = f'https://sportsbook.draftkings.com/leagues/football/{params["sport"]}'
 response = requests.get(url)
+
+header = {
+    'authorization': "Nzk2MDgxNzg5NTU4NDU2MzUx.GgQdGC.ZCqoFX8tlo7RNB5UgZaLJuuMqh7PvaaX-m1fyo"
+}
 
 reqCount = 0
 prevTeams = []
 prevLines = []
 numLineMoves = 0
 
-webhook_url = 'https://discordapp.com/api/webhooks/1166481866497462352/gisnsogwAcGVwTJN8my6gTzjtRhAzB05NPhO1_TQ2UWUO0yz25oGjcGXZxgipGCkwNzw'
-
 
 def sendNotificationToDiscord(msg):
     print("\n******LINE CHANGE********")
     print(msg)
     print("*************************")
-    r = requests.post(webhook_url, data={'content': msg})
+    r = requests.post(f'https://discord.com/api/v9/channels/{params["CFBChannelID"]}/messages',
+                      data={'content': msg}, headers=header)
 
 
 while reqCount < (params['maxRunTimeInMin'] * (60 / params['repRateInS'])):
 
-    print('\nParsing DK CFB Spreads data...')
+    print('\nParsing DK NFL Spreads data...')
 
     soup = BeautifulSoup(response.content, 'html.parser')
 

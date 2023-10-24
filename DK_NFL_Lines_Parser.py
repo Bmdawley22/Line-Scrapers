@@ -37,4 +37,4 @@ while reqCount < 120:
     prevLines = lines
     time.sleep(30)
 
-    print(f'{5*reqCount} seconds')
+    print(f'{30*reqCount} seconds')

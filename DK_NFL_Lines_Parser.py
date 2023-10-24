@@ -6,6 +6,11 @@ from bs4 import BeautifulSoup
 url = 'https://sportsbook.draftkings.com/leagues/football/nfl'
 response = requests.get(url)
 
+header = {
+    'authorization': "Nzk2MDgxNzg5NTU4NDU2MzUx.GgQdGC.ZCqoFX8tlo7RNB5UgZaLJuuMqh7PvaaX-m1fyo"
+}
+
+
 reqCount = 0
 prevTeams = []
 prevLines = []
@@ -26,10 +31,12 @@ while reqCount < 120:
     if reqCount > 0:
         for i in range(numGames):
             if lines[math.floor(4*i)].text != prevLines[math.floor(4*i)].text:
+                msg = f'Game {i+1}: {prevTeams[math.floor(2*i)].text}({prevLines[math.floor(4*i)].text}) to ({lines[math.floor(4*i)].text})')
                 print("******LINE CHANGE********")
-                print(
-                    f'Game {i+1}: {prevTeams[math.floor(2*i)].text}({prevLines[math.floor(4*i)].text}) to ({lines[math.floor(4*i)].text})')
+                print(msg)
                 print("*************************")
+                r = requests.post("https://discord.com/api/v9/channels/1166388909618511894/messages",
+                                  data={'content': msg}, headers=header)
 
     reqCount = reqCount + 1
 

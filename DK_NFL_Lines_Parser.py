@@ -24,20 +24,14 @@ while reqCount < 120:
     print('Comparing previous odds')
 
     if reqCount > 0:
-        test1 = lines[0]['data-variable']
-        test2 = prevLines[0]['data-variable']
-        print(f'current: {test1} vs prev: {test2}')
         for i in range(numGames):
-            if lines[math.floor(4*i)]['data-variable'] != prevLines[math.floor(4*i)]['data-variable']:
+            if lines[math.floor(4*i)].text != prevLines[math.floor(4*i)].text:
                 print("******LINE CHANGE********")
-                # print(
-                #     f'Game {i+1}: {prevTeams[math.floor(2*i)]['data-variable']}({prevLines[math.floor(4*i)]['data-variable']}) to ({lines[math.floor(4*i)]['data-variable']})')
-                # print(
-                #     f'Game {i+1}: {teams[math.floor(2*i)]['data-variable']}({lines[math.floor(4*i)]['data-variable']}) @ {teams[math.floor(2*i)+1]['data-variable']}')
+                print(
+                    f'Game {i+1}: {prevTeams[math.floor(2*i)].text}({prevLines[math.floor(4*i)].text}) to ({lines[math.floor(4*i)].text})')
+                print("*************************")
 
     reqCount = reqCount + 1
-    if reqCount > 3:
-        lines[0]['data-variable'] = "100"
 
     prevTeams = teams
     prevLines = lines

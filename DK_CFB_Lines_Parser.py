@@ -3,7 +3,7 @@ import math
 import time
 from bs4 import BeautifulSoup
 
-url = 'https://sportsbook.draftkings.com/leagues/football/nfl'
+url = 'https://sportsbook.draftkings.com/leagues/football/ncaaf'
 response = requests.get(url)
 
 header = {
@@ -17,7 +17,7 @@ prevLines = []
 
 while reqCount < 120:
 
-    print('\nParsing DK NFL Spreads data...')
+    print('\nParsing DK CFB Spreads data...')
 
     soup = BeautifulSoup(response.content, 'html.parser')
 
@@ -38,7 +38,7 @@ while reqCount < 120:
                 print("\n******LINE CHANGE********")
                 print(msg)
                 print("*************************")
-                r = requests.post("https://discord.com/api/v9/channels/1166388909618511894/messages",
+                r = requests.post("https://discord.com/api/v9/channels/1166410287453319250/messages",
                                   data={'content': msg}, headers=header)
 
     prevTeams = teams

@@ -54,8 +54,11 @@ while reqCount < (params['maxRunTimeInMin'] * (60 / params['repRateInS'])):
                 sendNotificationToDiscord(msg)
                 numLineMoves = numLineMoves + 1
 
-    prevTeams = teams
-    prevLines = lines
+    prevTeams = teams[:]
+    prevLines = lines[:]
+
+    teams.clear()
+    lines.clear()
 
     if params['test'] == True:
         if reqCount == 0:
@@ -63,11 +66,13 @@ while reqCount < (params['maxRunTimeInMin'] * (60 / params['repRateInS'])):
                 '<span class="sportsbook-outcome-cell__line">+Test</span>', 'html.parser')
 
     if reqCount > 0:
-        print('\nNo line changes - will check again in 1 min.')
+        print(f'\nNo line changes - will check again in {round(params['repRateInS']/60, 2)} min.')
         print(f'\nNumber of Line Moves: {numLineMoves}')
-        print(f'Runtime: {60*reqCount} seconds')
+        print(f'Runtime: {round(params['repRateInS']*reqCount,2)} seconds')
+        print('\n//////////////////////////////////////////////////////////////////////')
     else:
-        print('Will check for line changes in 1 min.')
+        print(f'Will check for line changes in {round(params['repRateInS']/60, 2)} min.')
+        print('\n//////////////////////////////////////////////////////////////////////')
 
     reqCount = reqCount + 1
 

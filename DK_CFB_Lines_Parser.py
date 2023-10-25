@@ -5,8 +5,14 @@ from bs4 import BeautifulSoup
 
 from scraperParameters import params
 
+login_url = 'https://myaccount.draftkings.com/login?intendedSiteExp=US-IA-SB&returnPath=%2F'
+data = {'username': 'dawleyb11@gmail.com', 'password': params['pass']}
+
+# # Perform the login
+# session = requests.Session()
+# session.post(login_url, data=data)
+
 url = 'https://sportsbook.draftkings.com/leagues/football/ncaaf'
-response = requests.get(url)
 
 reqCount = 0
 prevTeams = []
@@ -26,7 +32,7 @@ def sendNotificationToDiscord(msg):
 while reqCount < (params['maxRunTimeInMin'] * (60 / params['repRateInS'])):
 
     print('\nParsing DK CFB Spreads data...')
-
+    response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
 
     # # Find all the rows in the table
@@ -45,25 +51,31 @@ while reqCount < (params['maxRunTimeInMin'] * (60 / params['repRateInS'])):
                 print(
                     f'{i}: {teams[2*i].text}({lines[4*i].text})({lines[4*i+1].text}) || ({prevLines[4*i].text})({prevLines[4*i+1].text})')
             if lines[4*i].text != prevLines[4*i].text:
-                msg = f'Line Move: {prevTeams[2*i].text}({prevLines[4*i].text}) to ({lines[4*i].text})'
+                msg = f'Line Move: {prevTeams[2*i].text}:({prevLines[4*i].text}) to ({lines[4*i].text})'
                 sendNotificationToDiscord(msg)
                 numLineMoves = numLineMoves + 1
 
             elif lines[4*i+1].text != prevLines[4*i+1].text:
-                msg = f'Total Move: {prevTeams[2*i].text}({prevLines[4*i+1].text}) to ({lines[4*i+1].text})'
+                msg = f'Total Move: {prevTeams[2*i].text}:({prevLines[4*i+1].text}) to ({lines[4*i+1].text})'
                 sendNotificationToDiscord(msg)
                 numLineMoves = numLineMoves + 1
 
+    # print('//////////////')
     prevTeams = teams[:]
     prevLines = lines[:]
+    # print(f'{len(teams)}')
+    # print(f'{prevTeams[1]}: ({prevLines[1]})')
+    # teams.clear()
+    # lines.clear()
+    # print(f'{len(teams)}')
+    # print(f'{prevTeams[1]}: ({prevLines[1]})')
+    # print('//////////////')
 
-    teams.clear()
-    lines.clear()
 
-    if params['test'] == True:
-        if reqCount == 0:
-            prevLines[0] = BeautifulSoup(
-                '<span class="sportsbook-outcome-cell__line">+Test</span>', 'html.parser')
+    # if params['test'] == True:
+    #     if reqCount == 0:
+    #         prevLines[0] = BeautifulSoup(
+    #             '<span class="sportsbook-outcome-cell__line">+Test</span>', 'html.parser')
 
     if reqCount > 0:
         print(f'\nNo line changes - will check again in {round(params['repRateInS']/60, 2)} min.')

@@ -89,17 +89,12 @@ while reqCount < (maxRunTimeInMin * (60 / repRateInS)):
         print('Comparing previous odds...\n')
 
         for i in range(numTables):
-            print(f'{numTotalsinTables[i]}')
-            print(f'{len(teams[i])}')
-            print(f'{len(prevTeams[i])}')
-            print(f'{len(lines[i])}')
-            print(f'{len(prevLines[i])}\n')
             numGames = math.floor(len(teams[i])/2)
             if numTotalsinTables[i] == len(teams[i]):
                 if (len(prevTeams[i]) == len(teams[i])) and (len(prevLines[i]) == len(lines[i])):
                     for j in range(numGames):
-                        print(
-                            f'{i}{j}: {teams[i][2*j]}({lines[i][4*j]})({lines[i][4*j+1]}) || ({prevLines[i][4*j]})({prevLines[i][4*j+1]})')
+                        # print(
+                        #     f'{i}{j}: {teams[i][2*j]}({lines[i][4*j]})({lines[i][4*j+1]}) || ({prevLines[i][4*j]})({prevLines[i][4*j+1]})')
                         if teams[i][2*j] == prevTeams[i][2*j] and lines[i][4*j] != prevLines[i][4*j]:
                             msg = f'Line Move: {prevTeams[i][2*j]}: ({prevLines[i][4*j]}) to ({lines[i][4*j]})'
                             sendNotificationToDiscord(msg)
@@ -108,8 +103,8 @@ while reqCount < (maxRunTimeInMin * (60 / repRateInS)):
             if numTotalsinTables[i] == 0:
                 if (len(prevTeams[i]) == len(teams[i])) and (len(prevLines[i]) == len(lines[i])):
                     for j in range(numGames):
-                        print(
-                            f'{i}{j}: {teams[i][2*j]}({lines[i][2*j]}) || ({prevLines[i][2*j]})')
+                        # print(
+                        #     f'{i}{j}: {teams[i][2*j]}({lines[i][2*j]}) || ({prevLines[i][2*j]})')
                         if teams[i][2*j] == prevTeams[i][2*j] and lines[i][2*j] != prevLines[i][2*j]:
                             msg = f'Line Move: {prevTeams[i][2*j]}: ({prevLines[i][2*j]}) to ({lines[i][2*j]})'
                             sendNotificationToDiscord(msg)

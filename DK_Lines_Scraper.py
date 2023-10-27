@@ -1,77 +1,131 @@
+import sys
 import requests
 import math
 import time
 from bs4 import BeautifulSoup
 
-from scraperParameters import params
-
-url = f'https://sportsbook.draftkings.com/leagues/football/{params["sport"]}'
-response = requests.get(url)
-
-header = {
-    'authorization': "Nzk2MDgxNzg5NTU4NDU2MzUx.GgQdGC.ZCqoFX8tlo7RNB5UgZaLJuuMqh7PvaaX-m1fyo"
-}
+sportOptions = ['nfl', 'ncaaf', 'nba', ]
+if len(sys.argv) == 2:
+    sport = sys.argv[1].lower()
+    if sport in sportOptions:
+        if sport == 'nfl':
+            url = f'https://sportsbook.draftkings.com/leagues/football/nfl'
+            webhook_url = 'https://discord.com/api/webhooks/1166457905717968896/asJ74kScehP8BmzfekpRQ-XqVFaHiyvSJITX2UR3aGpoto_h1aeIeMZ_EA7yzQmeb6dj'
+        if sport == 'ncaaf':
+            url = f'https://sportsbook.draftkings.com/leagues/football/ncaaf'
+            webhook_url = 'https://discordapp.com/api/webhooks/1166481866497462352/gisnsogwAcGVwTJN8my6gTzjtRhAzB05NPhO1_TQ2UWUO0yz25oGjcGXZxgipGCkwNzw'
+        elif sport == 'nba':
+            url = f'https://sportsbook.draftkings.com/leagues/basketball/nba'
+            webhook_url = 'https://discordapp.com/api/webhooks/1166835230963937353/BplFeDDwc139dYtDJUC1cjUPRQX3n_hVtjVjJaSUcMgqj75_KNk22Z7KoHtnrg9McVg9'
+    else:
+        print('\nEnter valid sport as argument')
+        print('\nExample command: python DK_Lines_Scraper.py nfl\n')
+        sys.exit
+else:
+    print('\nEnter argument. Example command: pyhton DK_Lines_Scraper.py nfl\n')
+    sys.exit
 
 reqCount = 0
+maxRunTimeInMin = 600  # 10 hours
+repRateInS = 10
+numLineMoves = 0
 prevTeams = []
 prevLines = []
-numLineMoves = 0
+prevNumTotalsInTables = []
 
 
 def sendNotificationToDiscord(msg):
     print("\n******LINE CHANGE********")
     print(msg)
     print("*************************")
-    r = requests.post(f'https://discord.com/api/v9/channels/{params["CFBChannelID"]}/messages',
-                      data={'content': msg}, headers=header)
+    r = requests.post(webhook_url, data={'content': msg})
 
 
-while reqCount < (params['maxRunTimeInMin'] * (60 / params['repRateInS'])):
+while reqCount < (maxRunTimeInMin * (60 / repRateInS)):
 
-    print('\nParsing DK NFL Spreads data...')
+    print(f'\nParsing DK {sport.upper()} Spreads data...')
 
+    response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
 
-    # # Find all the rows in the table
-    teams = soup.find_all('div', class_="event-cell__name-text")
-    lines = soup.find_all(
-        'span', class_="sportsbook-outcome-cell__line")
+    tables = soup.find_all('tbody', class_='sportsbook-table__body')
+    numTables = len(tables)
+    numLiveTeams = int(
+        len(soup.find_all('span', class_='event-cell__period'))/2)
 
-    numGames = math.floor(len(teams)/2)
+    teams = []
+    lines = []
+    numTeamsInTable = []
+    numLinesInTable = []
+    numTotalsinTables = []
+
+    for i in range(numTables):
+
+        teams.append([])
+        lines.append([])
+        numTeamsInTable.append(
+            len(tables[i].find_all('div', class_='event-cell__name-text')))
+        numLinesInTable.append(
+            len(tables[i].find_all('span', class_='sportsbook-outcome-cell__line')))
+        numTotalsinTables.append(0)
+
+        for j in range(numTeamsInTable[i]):
+            teams[i].append(tables[i].find_all(
+                'div', class_='event-cell__name-text')[j].text)
+        for j in range(numLinesInTable[i]):
+            lines[i].append(tables[i].find_all(
+                'span', class_='sportsbook-outcome-cell__line')[j].text)
+            if lines[i][j][0] != '-' and lines[i][j][0] != '+':
+                numTotalsinTables[i] = numTotalsinTables[i] + 1
+
+    teams[0] = teams[0][numLiveTeams:]
+    lines[0] = lines[0][(2*numLiveTeams):]
+    numTotalsinTables[0] = numTotalsinTables[0] - numLiveTeams
 
     print('\nData Parsed.\n')
 
     if reqCount > 0:
+
         print('Comparing previous odds...\n')
-        for i in range(numGames):
-            if params['test'] == True:
-                print(
-                    f'{i}: {teams[2*i].text}({lines[4*i].text})({lines[4*i+1].text}) || ({prevLines[4*i].text})({prevLines[4*i+1].text})')
-            if lines[4*i].text != prevLines[4*i].text:
-                msg = f'Line Move: {prevTeams[2*i].text}({prevLines[4*i].text}) to ({lines[4*i].text})'
-                sendNotificationToDiscord(msg)
-                numLineMoves = numLineMoves + 1
 
-            elif lines[4*i+1].text != prevLines[4*i+1].text:
-                msg = f'Total Move: {prevTeams[2*i].text}({prevLines[4*i+1].text}) to ({lines[4*i+1].text})'
-                sendNotificationToDiscord(msg)
-                numLineMoves = numLineMoves + 1
+        for i in range(numTables):
+            print(f'{numTotalsinTables[i]}')
+            print(f'{len(teams[i])}')
+            print(f'{len(prevTeams[i])}')
+            print(f'{len(lines[i])}')
+            print(f'{len(prevLines[i])}\n')
+            numGames = math.floor(len(teams[i])/2)
+            if numTotalsinTables[i] == len(teams[i]):
+                if (len(prevTeams[i]) == len(teams[i])) and (len(prevLines[i]) == len(lines[i])):
+                    for j in range(numGames):
+                        print(
+                            f'{i}{j}: {teams[i][2*j]}({lines[i][4*j]})({lines[i][4*j+1]}) || ({prevLines[i][4*j]})({prevLines[i][4*j+1]})')
+                        if teams[i][2*j] == prevTeams[i][2*j] and lines[i][4*j] != prevLines[i][4*j]:
+                            msg = f'Line Move: {prevTeams[i][2*j]}: ({prevLines[i][4*j]}) to ({lines[i][4*j]})'
+                            sendNotificationToDiscord(msg)
+                            numLineMoves = numLineMoves + 1
 
-    prevTeams = teams
-    prevLines = lines
+            if numTotalsinTables[i] == 0:
+                if (len(prevTeams[i]) == len(teams[i])) and (len(prevLines[i]) == len(lines[i])):
+                    for j in range(numGames):
+                        print(
+                            f'{i}{j}: {teams[i][2*j]}({lines[i][2*j]}) || ({prevLines[i][2*j]})')
+                        if teams[i][2*j] == prevTeams[i][2*j] and lines[i][2*j] != prevLines[i][2*j]:
+                            msg = f'Line Move: {prevTeams[i][2*j]}: ({prevLines[i][2*j]}) to ({lines[i][2*j]})'
+                            sendNotificationToDiscord(msg)
+                            numLineMoves = numLineMoves + 1
 
-    if params['test'] == True:
-        if reqCount == 0:
-            prevLines[0] = BeautifulSoup(
-                '<span class="sportsbook-outcome-cell__line">+Test</span>', 'html.parser')
+    prevTeams = teams[:]
+    prevLines = lines[:]
+    prevNumTotalsInTables = numTotalsinTables[:]
 
     if reqCount > 0:
-        print('\nNo line changes - will check again in 1 min.')
-        print(f'\nNumber of Line Moves: {numLineMoves}')
-        print(f'Runtime: {60*reqCount} seconds')
+        print(
+            f'\nNumber of Line Moves: {numLineMoves}\n  Will check again in {round(repRateInS, 2)} s')
+        print('\n//////////////////////////////////////////////////////////////////////')
     else:
-        print('Will check for line changes in 1 min.')
+        print(f'Will check for line changes in {round(repRateInS, 2)} s.')
+        print('\n//////////////////////////////////////////////////////////////////////')
 
     reqCount = reqCount + 1
-
-    time.sleep(params['repRateInS'])
+    time.sleep(repRateInS)

@@ -4,9 +4,12 @@ import math
 import time
 from bs4 import BeautifulSoup
 
+# Determine sport selected and set Draftkings URL and which channel to webhook url to send notifications to
 sportOptions = ['nfl', 'ncaaf', 'nba', ]
+# make sure sport is entered in command line when script is ran
 if len(sys.argv) == 2:
     sport = sys.argv[1].lower()
+    # Makes sure sport entered matches designated sports for script
     if sport in sportOptions:
         if sport == 'nfl':
             url = f'https://sportsbook.draftkings.com/leagues/football/nfl'
@@ -25,6 +28,7 @@ else:
     print('\nEnter argument. Example command: pyhton DK_Lines_Scraper.py nfl\n')
     sys.exit
 
+# initialize variables
 reqCount = 0
 maxRunTimeInMin = 600  # 10 hours
 repRateInS = 10
@@ -32,6 +36,10 @@ numLineMoves = 0
 prevTeams = []
 prevLines = []
 prevNumTotalsInTables = []
+
+# Function called when line movement identified
+# Prints notification to command line
+# Sends message to Discord channel
 
 
 def sendNotificationToDiscord(msg):
@@ -41,26 +49,27 @@ def sendNotificationToDiscord(msg):
     r = requests.post(webhook_url, data={'content': msg})
 
 
+# While loop that runs until designated timeout to loop parsing of DK data
 while reqCount < (maxRunTimeInMin * (60 / repRateInS)):
 
     print(f'\nParsing DK {sport.upper()} Spreads data...')
-
+    # Request data from DK URL
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
-
+    # Finds all of the tables on the web page
     tables = soup.find_all('tbody', class_='sportsbook-table__body')
-    numTables = len(tables)
+    numTables = len(tables)  # Number of different tables on web page
     numLiveTeams = int(
-        len(soup.find_all('span', class_='event-cell__period'))/2)
-
+        len(soup.find_all('span', class_='event-cell__period'))/2)  # Number of live current lives games
+    # Initialize variables
     teams = []
     lines = []
     numTeamsInTable = []
     numLinesInTable = []
     numTotalsinTables = []
-
+    # Loop through each web page table found
     for i in range(numTables):
-
+        # Adds row to each variable for each table
         teams.append([])
         lines.append([])
         numTeamsInTable.append(
@@ -68,38 +77,49 @@ while reqCount < (maxRunTimeInMin * (60 / repRateInS)):
         numLinesInTable.append(
             len(tables[i].find_all('span', class_='sportsbook-outcome-cell__line')))
         numTotalsinTables.append(0)
-
+        # loop through each team (j) in each table (i)
         for j in range(numTeamsInTable[i]):
             teams[i].append(tables[i].find_all(
-                'div', class_='event-cell__name-text')[j].text)
+                'div', class_='event-cell__name-text')[j].text)  # adds team to teams[i] variable
         for j in range(numLinesInTable[i]):
             lines[i].append(tables[i].find_all(
-                'span', class_='sportsbook-outcome-cell__line')[j].text)
+                'span', class_='sportsbook-outcome-cell__line')[j].text)  # adds lines to lines[i] variable
+            # checks if current line is a total
             if lines[i][j][0] != '-' and lines[i][j][0] != '+':
+                # count for number of totals in current table
                 numTotalsinTables[i] = numTotalsinTables[i] + 1
-
+    # removes live teams, lines, and number of totals from variables
     teams[0] = teams[0][numLiveTeams:]
     lines[0] = lines[0][(2*numLiveTeams):]
     numTotalsinTables[0] = numTotalsinTables[0] - numLiveTeams
 
     print('\nData Parsed.\n')
-
+    # Check to see if we have previous data
     if reqCount > 0:
 
         print('Comparing previous odds...\n')
-
+        # Loop through current table
         for i in range(numTables):
+            # calculate # of games in current table
             numGames = math.floor(len(teams[i])/2)
+            # assures the table is filled with totals
             if numTotalsinTables[i] == len(teams[i]):
+                # makes sure we're comparing equally long teams/lines variables
                 if (len(prevTeams[i]) == len(teams[i])) and (len(prevLines[i]) == len(lines[i])):
-                    for j in range(numGames):
+                    for j in range(numGames):  # Loop through each game in current table
                         # print(
                         #     f'{i}{j}: {teams[i][2*j]}({lines[i][4*j]})({lines[i][4*j+1]}) || ({prevLines[i][4*j]})({prevLines[i][4*j+1]})')
+                        # checks that we're comparing correct teams and compares LINE values
                         if teams[i][2*j] == prevTeams[i][2*j] and lines[i][4*j] != prevLines[i][4*j]:
                             msg = f'Line Move: {prevTeams[i][2*j]}: ({prevLines[i][4*j]}) to ({lines[i][4*j]})'
                             sendNotificationToDiscord(msg)
                             numLineMoves = numLineMoves + 1
-
+                        # checks that we're comparing correct teams and compares TOTAL values
+                        if teams[i][2*j] == prevTeams[i][2*j] and lines[i][4*j+1] != prevLines[i][4*j+1]:
+                            msg = f'Total Move: {prevTeams[i][2*j]}: ({prevLines[i][4*j+1]}) to ({lines[i][4*j+1]})'
+                            sendNotificationToDiscord(msg)
+                            numLineMoves = numLineMoves + 1
+            # Check to make sure no totals are in current table
             if numTotalsinTables[i] == 0:
                 if (len(prevTeams[i]) == len(teams[i])) and (len(prevLines[i]) == len(lines[i])):
                     for j in range(numGames):
@@ -109,7 +129,7 @@ while reqCount < (maxRunTimeInMin * (60 / repRateInS)):
                             msg = f'Line Move: {prevTeams[i][2*j]}: ({prevLines[i][2*j]}) to ({lines[i][2*j]})'
                             sendNotificationToDiscord(msg)
                             numLineMoves = numLineMoves + 1
-
+    # Copy current lines to "previos" variables for check on next iteration
     prevTeams = teams[:]
     prevLines = lines[:]
     prevNumTotalsInTables = numTotalsinTables[:]
@@ -117,10 +137,11 @@ while reqCount < (maxRunTimeInMin * (60 / repRateInS)):
     if reqCount > 0:
         print(
             f'\nNumber of Line Moves: {numLineMoves}\n  Will check again in {round(repRateInS, 2)} s')
-        print('\n//////////////////////////////////////////////////////////////////////')
+        print(f'Runtime: {round(repRateInS*reqCount,2)} seconds')
+        print('\n///////////////////////////////////////////////////////')
     else:
         print(f'Will check for line changes in {round(repRateInS, 2)} s.')
-        print('\n//////////////////////////////////////////////////////////////////////')
+        print('\n///////////////////////////////////////////////////////')
 
     reqCount = reqCount + 1
-    time.sleep(repRateInS)
+    time.sleep(repRateInS)  # delay for the while loop

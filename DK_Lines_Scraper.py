@@ -36,10 +36,11 @@ numLineMoves = 0
 prevTeams = []
 prevLines = []
 prevNumTotalsInTables = []
+noCopyCount = 0
+tableLineChanges = 0  # variable to keep track of the line changes for each table
 
 # Function called when line movement identified
-# Prints notification to command line
-# Sends message to Discord channel
+# Prints notification to command line and sends message to Discord channel
 
 
 def sendNotificationToDiscord(msg):
@@ -53,22 +54,23 @@ def sendNotificationToDiscord(msg):
 while reqCount < (maxRunTimeInMin * (60 / repRateInS)):
 
     print(f'\nParsing DK {sport.upper()} Spreads data...')
-    # Request data from DK URL
+    # Request data from DK webpage
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
     # Finds all of the tables on the web page
     tables = soup.find_all('tbody', class_='sportsbook-table__body')
     numTables = len(tables)  # Number of different tables on web page
     numLiveTeams = int(
-        len(soup.find_all('span', class_='event-cell__period'))/2)  # Number of live current lives games
+        len(soup.find_all('span', class_='event-cell__period')))  # Number of teams in live games
     # Initialize variables
     teams = []
     lines = []
     numTeamsInTable = []
     numLinesInTable = []
     numTotalsinTables = []
-    # Loop through each web page table found
-    for i in range(numTables):
+
+    # Populate webpage data into variables
+    for i in range(numTables):  # Loop through each web page table found
         # Adds row to each variable for each table
         teams.append([])
         lines.append([])
@@ -84,55 +86,79 @@ while reqCount < (maxRunTimeInMin * (60 / repRateInS)):
         for j in range(numLinesInTable[i]):
             lines[i].append(tables[i].find_all(
                 'span', class_='sportsbook-outcome-cell__line')[j].text)  # adds lines to lines[i] variable
-            # checks if current line is a total
+            # checks if current line is a total by checking for "+" or "-" for the first character
             if lines[i][j][0] != '-' and lines[i][j][0] != '+':
                 # count for number of totals in current table
                 numTotalsinTables[i] = numTotalsinTables[i] + 1
-    # removes live teams, lines, and number of totals from variables
-    teams[0] = teams[0][numLiveTeams:]
-    lines[0] = lines[0][(2*numLiveTeams):]
-    numTotalsinTables[0] = numTotalsinTables[0] - numLiveTeams
+
+    # print(numLiveTeams)
+    if len(teams) > 0 and len(lines) > 0:
+        # removes live teams, lines, and number of totals from variables
+        teams[0] = teams[0][numLiveTeams:]
+        lines[0] = lines[0][(2*numLiveTeams):]
+        if len(numTotalsinTables) > 0:
+            numTotalsinTables[0] = numTotalsinTables[0] - numLiveTeams
 
     print('\nData Parsed.\n')
     # Check to see if we have previous data
     if reqCount > 0:
-
         print('Comparing previous odds...\n')
         # Loop through current table
         for i in range(numTables):
+            tableLineChanges = 0  # reset the counter for # of line changes for each table to 0
             # calculate # of games in current table
-            numGames = math.floor(len(teams[i])/2)
-            # assures the table is filled with totals
-            if numTotalsinTables[i] == len(teams[i]):
-                # makes sure we're comparing equally long teams/lines variables
-                if (len(prevTeams[i]) == len(teams[i])) and (len(prevLines[i]) == len(lines[i])):
-                    for j in range(numGames):  # Loop through each game in current table
-                        # print(
-                        #     f'{i}{j}: {teams[i][2*j]}({lines[i][4*j]})({lines[i][4*j+1]}) || ({prevLines[i][4*j]})({prevLines[i][4*j+1]})')
-                        # checks that we're comparing correct teams and compares LINE values
-                        if teams[i][2*j] == prevTeams[i][2*j] and lines[i][4*j] != prevLines[i][4*j]:
-                            msg = f'Line Move: {prevTeams[i][2*j]}: ({prevLines[i][4*j]}) to ({lines[i][4*j]})'
-                            sendNotificationToDiscord(msg)
-                            numLineMoves = numLineMoves + 1
-                        # checks that we're comparing correct teams and compares TOTAL values
-                        if teams[i][2*j] == prevTeams[i][2*j] and lines[i][4*j+1] != prevLines[i][4*j+1]:
-                            msg = f'Total Move: {prevTeams[i][2*j]}: ({prevLines[i][4*j+1]}) to ({lines[i][4*j+1]})'
-                            sendNotificationToDiscord(msg)
-                            numLineMoves = numLineMoves + 1
-            # Check to make sure no totals are in current table
-            if numTotalsinTables[i] == 0:
-                if (len(prevTeams[i]) == len(teams[i])) and (len(prevLines[i]) == len(lines[i])):
-                    for j in range(numGames):
-                        # print(
-                        #     f'{i}{j}: {teams[i][2*j]}({lines[i][2*j]}) || ({prevLines[i][2*j]})')
-                        if teams[i][2*j] == prevTeams[i][2*j] and lines[i][2*j] != prevLines[i][2*j]:
-                            msg = f'Line Move: {prevTeams[i][2*j]}: ({prevLines[i][2*j]}) to ({lines[i][2*j]})'
-                            sendNotificationToDiscord(msg)
-                            numLineMoves = numLineMoves + 1
-    # Copy current lines to "previos" variables for check on next iteration
-    prevTeams = teams[:]
-    prevLines = lines[:]
-    prevNumTotalsInTables = numTotalsinTables[:]
+            numGames = math.floor(len(teams[i])/2)-1
+            try:
+                # assures the table is filled with totals
+                if numTotalsinTables[i] == len(teams[i]):
+                    # makes sure we're comparing equally long teams/lines variables
+                    if (len(prevTeams[i]) == len(teams[i])) and (len(prevLines[i]) == len(lines[i])):
+                        for j in range(numGames):  # Loop through each game in current table
+                            print(
+                                f'{i}{j}: {teams[i][2*j]}({lines[i][4*j]})({lines[i][4*j+1]}) || ({prevLines[i][4*j]})({prevLines[i][4*j+1]})')
+                            # checks that we're comparing correct teams and compares LINE values
+                            if teams[i][2*j] == prevTeams[i][2*j] and lines[i][4*j] != prevLines[i][4*j]:
+                                # limits amt of notifications sent per table each iteration (for when removing live lines doesn't work)
+                                if tableLineChanges < 3:
+                                    msg = f'Line Move: {prevTeams[i][2*j]}: ({prevLines[i][4*j]}) to ({lines[i][4*j]})'
+                                    sendNotificationToDiscord(msg)
+                                    numLineMoves = numLineMoves + 1
+                                    tableLineChanges = tableLineChanges + 1
+                            # checks that we're comparing correct teams and compares TOTAL values
+                            if teams[i][2*j] == prevTeams[i][2*j] and lines[i][4*j+1] != prevLines[i][4*j+1]:
+                                if tableLineChanges < 3:
+                                    msg = f'Total Move: {prevTeams[i][2*j]}: ({prevLines[i][4*j+1]}) to ({lines[i][4*j+1]})'
+                                    sendNotificationToDiscord(msg)
+                                    numLineMoves = numLineMoves + 1
+                                    tableLineChanges = tableLineChanges + 1
+
+                # Check to make sure no totals are in current table
+                if numTotalsinTables[i] == 0:
+                    if (len(prevTeams[i]) == len(teams[i])) and (len(prevLines[i]) == len(lines[i])):
+                        for j in range(numGames):
+                            # print(
+                            #     f'{i}{j}: {teams[i][2*j]}({lines[i][2*j]}) || ({prevLines[i][2*j]})')
+                            if teams[i][2*j] == prevTeams[i][2*j] and lines[i][2*j] != prevLines[i][2*j]:
+                                if tableLineChanges < 3:
+                                    msg = f'Line Move: {prevTeams[i][2*j]}: ({prevLines[i][2*j]}) to ({lines[i][2*j]})'
+                                    sendNotificationToDiscord(msg)
+                                    numLineMoves = numLineMoves + 1
+                                    tableLineChanges = tableLineChanges + 1
+            except Exception as e:
+                sendNotificationToDiscord(e)
+                sendNotificationToDiscord(
+                    'Script errored out.  Attempting to reset.')
+                noCopyCount = noCopyCount + 1
+
+                time.sleep(repRateInS)
+
+    if noCopyCount == 0 or noCopyCount > 1:
+        # Copy current lines to "previos" variables for check on next iteration
+        prevTeams = teams[:]
+        prevLines = lines[:]
+        prevNumTotalsInTables = numTotalsinTables[:]
+        if noCopyCount > 1:
+            noCopyCount = 0
 
     if reqCount > 0:
         print(
